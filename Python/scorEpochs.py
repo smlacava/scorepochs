@@ -29,6 +29,7 @@
 import numpy as np
 from scipy import signal as sig
 from scipy import stats as st
+import sys
 
 def scorEpochs(cfg, data):
     """
@@ -101,44 +102,72 @@ def _movmean(aux_pxx, smoothFactor, initial_f, final_f, nFreq, idx_min, idx_max)
 
 
 if __name__ == "__main__":
-    print("This function aims to select the best (most homogenoous) M/EEG epochs from a resting-state recordings.")
-    print('\nThe only required arguments are the a dictionary, containing all the necessary pairs key-value, and the ',
-          'time series.')
-    print('The keys of the dictionary are: \n\t - freqRange: a list containing the initial and the final value of the ',
-          'frequency band which has to be considered (in Hz) \n\t - fs: an integer representing the sampling frequency',
-          ' (in Hz) \n\t - windowL: an integer representing the length of each epoch in which the time series has to ',
-          'be divided (in seconds) \n\t - smoothFactor: the smoothing factor for the power spectrum (optional)')
-    print('\nThe function returns a list containing the indexes of the best epochs, a 3d list containing the time ',
-          'series divided in epochs (channels X epochs X time series), and the list of the scores assigned to each ',
-          'epoch.')
-    print('\n\nTaking for example a random time series of 10 channels and 10000 samples, contained in a 2d list ',
-          '(10 X 10000), having a sampling frequency equal to 100 Hz, in order to evaluate the best epochs of 10 ',
-          'seconds, studying the frequency band between 10 and 40 Hz, considering a smoothing factor (length of the ',
-          ' window used by the moving average in the power spectrum), it is necessary to use the following dictionary:',
-          "\n\t\t{'freqRange':[10, 40], 'fs':100, 'windowL':10, 'smoothFactor':3}")
-    print('So, in order to execute the function using these parameters, it is possible to use:')
-    print("idx_best, epoch, scores = scorEpochs({'freqRange':[10, 40], 'fs':100, 'windowL':10, 'smoothFactor':3}",
-          ", time_series)")
-    np.random.seed()
-    time_series = np.zeros((10, 10000))
-    x = np.linspace(1, 10000, 10000)
-    for i in range(10):
-        for j in range(10000):
-            time_series[i][j] = np.random.normal(scale=1)
-    idx_best, epoch, scores = scorEpochs({'freqRange':[10, 40], 'fs':100, 'windowL':10, 'smoothFactor':3}, time_series)
-    print("\n\nAs result, idx_best contains the list of the best epochs:")
-    print(idx_best)
-    print("\nThe 3d list named epoch contains the original signal segmented in epochs (channels X epochs X time ",
-          "series) and, in this case, it has the following dimensions:")
-    print(str(len(epoch)) + " " + str(len(epoch[0])) + " " + str(len(epoch[0][0])))
-    print("\nFinally, scores contains the score of each epoch:")
-    print(scores)
-    print("\n\nFor example, in order to extract the five best epochs, it is possible to execute: \n\t ")
-    print("best_epochs = np.zeros((len(epoch), 5, len(epoch[0][0])))")
-    print("for c in range(len(epoch)):")
-    print("\tfor e in range(5):")
-    print("\t\tbest_epochs[c][e] = epoch[c][idx_best[e]]")
-    best_epochs = np.zeros((len(epoch), 5, len(epoch[0][0])))
-    for c in range(len(epoch)):
-        for e in range(5):
-            best_epochs[c][e] = epoch[c][idx_best[e]]
+    if len(sys.argv) > 1:
+        cfg_str = ''
+        data_str = ''
+        check = 0
+        for el in sys.argv[1:len(sys.argv)]:
+            if el[-1] == '}':
+                check = 1
+                cfg_str = cfg_str + el
+            elif check == 0:
+                cfg_str = cfg_str + el
+            elif check == 1:
+                data_str = data_str + el
+        cfg = eval(cfg_str)
+        data = eval(data_str)
+        idx_best_ep, epoch, score_Xep = scorEpochs(cfg, data)
+        print("idx_best_ep = " + str(idx_best_ep))
+        print("epoch = " + str(epoch))
+        print("score_Xep = " + str(score_Xep))
+    else:
+        print(len(sys.argv))
+        print("This function aims to select the best (most homogenoous) M/EEG epochs from a resting-state recordings.")
+        print('\nThe only required arguments are the a dictionary, containing all the necessary pairs key-value, and ',
+              'the time series.')
+        print('The keys of the dictionary are: \n\t - freqRange: a list containing the initial and the final value of ',
+              'the frequency band which has to be considered (in Hz) \n\t - fs: an integer representing the sampling ',
+              'frequency (in Hz) \n\t - windowL: an integer representing the length of each epoch in which the time ',
+              'series has to be divided (in seconds) \n\t - smoothFactor: the smoothing factor for the power spectrum',
+              ' (optional)')
+        print('\nThe function returns a list containing the indexes of the best epochs, a 3d list containing the time ',
+              'series divided in epochs (channels X epochs X time series), and the list of the scores assigned to each',
+              ' epoch.')
+        print('\n\nTaking for example a random time series of 10 channels and 10000 samples, contained in a 2d list ',
+              '(10 X 10000), having a sampling frequency equal to 100 Hz, in order to evaluate the best epochs of 10 ',
+              'seconds, studying the frequency band between 10 and 40 Hz, considering a smoothing factor (length of ',
+              'the window used by the moving average in the power spectrum), it is necessary to use the following ',
+              "dictionary:\n\t\t{'freqRange':[10, 40], 'fs':100, 'windowL':10, 'smoothFactor':3}")
+        print('So, in order to execute the function using these parameters, it is possible to use:')
+        print("idx_best, epoch, scores = scorEpochs({'freqRange':[10, 40], 'fs':100, 'windowL':10, 'smoothFactor':3}",
+              ", time_series)")
+        np.random.seed()
+        time_series = np.zeros((10, 10000))
+        x = np.linspace(1, 10000, 10000)
+        for i in range(10):
+            for j in range(10000):
+                time_series[i][j] = np.random.normal(scale=1)
+        idx_best, epoch, scores = scorEpochs({'freqRange':[10, 40], 'fs':100, 'windowL':10, 'smoothFactor':3},
+                                             time_series)
+        print("\n\nAs result, idx_best contains the list of the best epochs:")
+        print(idx_best)
+        print("\nThe 3d list named epoch contains the original signal segmented in epochs (channels X epochs X time ",
+              "series) and, in this case, it has the following dimensions:")
+        print(str(len(epoch)) + " " + str(len(epoch[0])) + " " + str(len(epoch[0][0])))
+        print("\nFinally, scores contains the score of each epoch:")
+        print(scores)
+        print("\n\nFor example, in order to extract the five best epochs, it is possible to execute: \n\t ")
+        print("best_epochs = np.zeros((len(epoch), 5, len(epoch[0][0])))")
+        print("for c in range(len(epoch)):")
+        print("\tfor e in range(5):")
+        print("\t\tbest_epochs[c][e] = epoch[c][idx_best[e]]")
+        best_epochs = np.zeros((len(epoch), 5, len(epoch[0][0])))
+        for c in range(len(epoch)):
+            for e in range(5):
+                best_epochs[c][e] = epoch[c][idx_best[e]]
+        print('\n\nThis tool can be used through the command line (do not be afraid to put spaces, they will be ',
+              'automatically managed) or by importing it')
+        print('In the last case you have two possibility: \n - Import the function from the module:'
+              "\n\t from scorEpochs import scorEpochs \n\t idx_best, epoch, scores = scorEpochs(cfg, data) \n ",
+              "- Import the module and use the function through the dot notation: \n\t idx_best, epoch, scores = ",
+              "scorEpochs.scorEpochs(cfg, data)")
