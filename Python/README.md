@@ -9,14 +9,14 @@ This tool can be used through the command line (do not be afraid to put spaces, 
 In the last case you have two possibility: 
  - Import the function from the module:
  
-   <div class="text-orange mb-2">from</div> scorEpochs <div class="text-orange mb-2">import</div> scorEpochs 
+   <font color="orange">from</font> scorEpochs <font color="orange">import</font> scorEpochs 
    
-   idx_best<div class="text-orange mb-2">,</div> epoch<div class="text-orange mb-2">,</div> scores = scorEpochs(cfg<div class="text-orange mb-2">,</div> data)
+   idx_best<font color="orange">,</font> epoch<font color="orange">,</font> scores = scorEpochs(cfg<font color="orange">,</font> data)
        
        
  - Import the module and use the function through the dot notation: 
  
-    idx_best<div class="text-orange mb-2">,</div> epoch<div class="text-orange mb-2">,</div> scores = scorEpochs.scorEpochs(cfg<div class="text-orange mb-2">,</div> data)
+    idx_best<font color="orange">,</font> epoch<font color="orange">,</font> scores = scorEpochs.scorEpochs(cfg<font color="orange">,</font> data)
 
 ## Required libraries
  - Numpy
