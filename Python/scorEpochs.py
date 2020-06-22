@@ -78,10 +78,9 @@ def scorEpochs(cfg, data):
     for c in range(nCh):
         for e in range(nEp):
             pxxXch[e] = pxx[c][e]
-
-        score_ch, p = st.spearmanr(pxxXch)
-        score_chXep[c] = np.mean(score_ch)
-    score_Xep = np.mean(score_chXep, axis=1)
+            score_ch, p = st.spearmanr(pxxXch, axis=0)
+            score_chXep[c][e] = np.mean(score_ch)
+    score_Xep = np.mean(score_chXep, axis=0)
     idx_best_ep = np.argsort(score_Xep)
     idx_best_ep = idx_best_ep[::-1]
     return idx_best_ep, epoch, score_Xep
@@ -134,12 +133,12 @@ if __name__ == "__main__":
               'series divided in epochs (channels X epochs X time series), and the list of the scores assigned to each',
               ' epoch.')
         print('\n\nTaking for example a random time series of 10 channels and 10000 samples, contained in a 2d list ',
-              '(10 X 10000), having a sampling frequency equal to 100 Hz, in order to evaluate the best epochs of 10 ',
+              '(10 X 10000), having a sampling frequency equal to 100 Hz, in order to evaluate the best epochs of 5 ',
               'seconds, studying the frequency band between 10 and 40 Hz, considering a smoothing factor (length of ',
               'the window used by the moving average in the power spectrum), it is necessary to use the following ',
-              "dictionary:\n\t\t{'freqRange':[10, 40], 'fs':100, 'windowL':10, 'smoothFactor':3}")
+              "dictionary:\n\t\t{'freqRange':[10, 40], 'fs':100, 'windowL':5, 'smoothFactor':3}")
         print('So, in order to execute the function using these parameters, it is possible to use:')
-        print("idx_best, epoch, scores = scorEpochs({'freqRange':[10, 40], 'fs':100, 'windowL':10, 'smoothFactor':3}",
+        print("idx_best, epoch, scores = scorEpochs({'freqRange':[10, 40], 'fs':100, 'windowL':5, 'smoothFactor':3}",
               ", time_series)")
         np.random.seed()
         time_series = np.zeros((10, 10000))
@@ -147,7 +146,7 @@ if __name__ == "__main__":
         for i in range(10):
             for j in range(10000):
                 time_series[i][j] = np.random.normal(scale=1)
-        idx_best, epoch, scores = scorEpochs({'freqRange':[10, 40], 'fs':100, 'windowL':10, 'smoothFactor':3},
+        idx_best, epoch, scores = scorEpochs({'freqRange':[10, 40], 'fs':100, 'windowL':5, 'smoothFactor':3},
                                              time_series)
         print("\n\nAs result, idx_best contains the list of the best epochs:")
         print(idx_best)
