@@ -18,7 +18,7 @@ In the last case you have two possibility:
  - Import the module and use the function through the dot notation: 
  
   ```python
-    idx_best, epoch, scores = scorEpochs.scorEpochs(cfg, data)
+    idx_best, epoch, scores = scorEpochs(cfg, data)
   ```
   
 ## Required libraries
