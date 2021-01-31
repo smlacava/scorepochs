@@ -21,15 +21,36 @@
     idx_best_ep: list of indexes sorted according to the best score (this list should be used for the selection of the
                   best epochs)
 
-    epoch:       3d list of the data divided in equal length epochs of length windowL (channels X epochs X time samples)
+    epoch:       3d list of the data divided in equal length epochs of length windowL (epochs X channels X time samples)
 
     score_Xep:   array of score per epoch
+
+
+
+
+
+     Copyright (C) 2020 Simone Maurizio La Cava
+
+     This program is free software: you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published by
+     the Free Software Foundation, either version 3 of the License, or
+     (at your option) any later version.
+
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 
 import numpy as np
 from scipy import signal as sig
 from scipy import stats as st
 import sys
+
 
 def scorEpochs(cfg, data):
     """
@@ -52,34 +73,33 @@ def scorEpochs(cfg, data):
     nCh = len(data)
     idx_ep = range(0, dataLen-epLen+1, epLen)
     nEp = len(idx_ep)
-    epoch = np.zeros((nCh, nEp, epLen))
+    epoch = np.zeros((nEp, nCh, epLen))
     freqRange = cfg['freqRange']
     smoothing_condition = 'smoothFactor' in cfg.keys() and cfg['smoothFactor'] > 1
     for e in range(nEp):
         for c in range(nCh):
-            epoch[c][e] = data[c][idx_ep[e]: idx_ep[e] + epLen]
+            epoch[e][c][0:epLen] = data[c][idx_ep[e]: idx_ep[e] + epLen]
             # compute power spectrum
-            f, aux_pxx = sig.welch(epoch[c][e], cfg['fs'], nperseg=cfg['windowL'], noverlap=0)
+            f, aux_pxx = sig.welch(epoch[e][c].T, cfg['fs'], nperseg=cfg['windowL'], noverlap=0, detrend=False)
             if c == 0 and e == 0:
                 idx_min = int(np.argmin(abs(f-freqRange[0])))
                 idx_max = int(np.argmin(abs(f-freqRange[-1])))
                 nFreq = len(aux_pxx[idx_min:idx_max+1])
-                pxx = np.zeros((nCh, nEp, nFreq))
+                pxx = np.zeros((nEp, nCh, nFreq))
                 if smoothing_condition:
                     window_range = round(cfg['smoothFactor'])
                     initial_f = int(window_range/2)
                     final_f = nFreq - initial_f
-            pxx[c][e] = aux_pxx[idx_min:idx_max+1]
+            pxx[e][c] = aux_pxx[idx_min:idx_max+1]
             if smoothing_condition:
-                pxx[c][e] = _movmean(aux_pxx, cfg['smoothFactor'], initial_f, final_f, nFreq, idx_min, idx_max)
-
-    pxxXch = np.zeros((nEp, len(pxx[0][0])))
+                pxx[e][c] = _movmean(aux_pxx, cfg['smoothFactor'], initial_f, final_f, nFreq, idx_min, idx_max)
+    pxxXch = np.zeros((nEp, idx_max-idx_min+1))
     score_chXep = np.zeros((nCh, nEp))
     for c in range(nCh):
         for e in range(nEp):
-            pxxXch[e] = pxx[c][e]
-            score_ch, p = st.spearmanr(pxxXch, axis=0)
-            score_chXep[c][e] = np.mean(score_ch)
+            pxxXch[e] = pxx[e][c]
+        score_ch, p = st.spearmanr(pxxXch, axis=1)
+        score_chXep[c][0:nEp] += np.mean(score_ch, axis=1)
     score_Xep = np.mean(score_chXep, axis=0)
     idx_best_ep = np.argsort(score_Xep)
     idx_best_ep = idx_best_ep[::-1]
@@ -87,6 +107,18 @@ def scorEpochs(cfg, data):
 
 
 def _movmean(aux_pxx, smoothFactor, initial_f, final_f, nFreq, idx_min, idx_max):
+    """
+    Function used for computing the smoothed power spectrum through moving average filter, where each output sample is
+    evaluated on the center of the window at each iteration (or the one furthest to the right of the two in the center,
+    in case of a window with an even number of elements), without padding on edges (FOR INTERNAL USE ONLY).
+     X = [X(0), X(1), X(2), X(3), X(4)]
+     smoothFactor = 3
+     Y(0) = (X(0))+X(1))/2
+     Y(1) = (X(0)+X(1)+X(2))/3
+     Y(2) = (X(1)+X(2)+X(3))/3
+     Y(3) = (X(2)+X(3)+X(4))/3
+     Y(4) = (X(3)+X(4))/2
+    """
     smoothed = np.zeros((idx_max-idx_min+1,))
     for f in range(nFreq):
         if f < initial_f:
@@ -150,20 +182,20 @@ if __name__ == "__main__":
                                              time_series)
         print("\n\nAs result, idx_best contains the list of the best epochs:")
         print(idx_best)
-        print("\nThe 3d list named epoch contains the original signal segmented in epochs (channels X epochs X time ",
+        print("\nThe 3d list named epoch contains the original signal segmented in epochs (epochs x channels X time ",
               "series) and, in this case, it has the following dimensions:")
         print(str(len(epoch)) + " " + str(len(epoch[0])) + " " + str(len(epoch[0][0])))
         print("\nFinally, scores contains the score of each epoch:")
         print(scores)
         print("\n\nFor example, in order to extract the five best epochs, it is possible to execute: \n\t ")
-        print("best_epochs = np.zeros((len(epoch), 5, len(epoch[0][0])))")
-        print("for c in range(len(epoch)):")
+        print("best_epochs = np.zeros((5, len(epoch), len(epoch[0][0])))")
+        print("for c in range(len(epoch[0])):")
         print("\tfor e in range(5):")
-        print("\t\tbest_epochs[c][e] = epoch[c][idx_best[e]]")
-        best_epochs = np.zeros((len(epoch), 5, len(epoch[0][0])))
-        for c in range(len(epoch)):
+        print("\t\tbest_epochs[e][c] = epoch[idx_best[e]][c]")
+        best_epochs = np.zeros((5, len(epoch), len(epoch[0][0])))
+        for c in range(len(epoch[0])):
             for e in range(5):
-                best_epochs[c][e] = epoch[c][idx_best[e]]
+                best_epochs[e][c] = epoch[idx_best[e]][c]
         print('\n\nThis tool can be used through the command line (do not be afraid to put spaces, they will be ',
               'automatically managed) or by importing it')
         print('In the last case you have two possibility: \n - Import the function from the module:'
