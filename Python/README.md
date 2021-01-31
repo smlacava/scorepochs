@@ -18,9 +18,25 @@ In the last case you have two possibility:
  - Import the module and use the function through the dot notation: 
  
   ```python
-    idx_best, epoch, scores = scorEpochs(cfg, data)
+    idx_best, epoch, scores = scorEpochs.scorEpochs(cfg, data)
   ```
-  
+
+<br>
+
+The **data** parameter represents a 2D (channels x samples) matrix.
+
+<br>
+
+The **cfg** parameter is a dictionary which has the following keys:
+- **freqRange**, in which the interested frequency band is defined as a list which contains the related cut frequencies
+- **fs**, which represents the sampling frequency of the time series
+- **windowL**, which identify the number of seconds of each epoch
+- **smoothFactor**, which represents the window of the moving average filter which have to be applied on the power spectrum of each epoch (optional, the moving average is not computed if this parameter is omitted)
+An example for this parameter is:
+```python
+cfg = {'freqRange':[1, 100], 'fs':500, 'windowL':20, 'smoothFactor':1}
+```
+
 ## Required libraries
  - Numpy
  - Scipy
