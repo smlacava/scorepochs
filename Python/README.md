@@ -3,6 +3,8 @@ This is the Python version of the tool
 
 Developed on Python 3.6
 
+<br><br>
+
 ## Usage
 This tool can be used through the command line (do not be afraid to put spaces, they will be automatically managed) or by importing it
 
@@ -37,6 +39,8 @@ An example for this parameter is:
 ```python
 cfg = {'freqRange':[1, 100], 'fs':500, 'windowL':20, 'smoothFactor':3}
 ```
+
+<br><br>
 
 ## Required libraries
  - Numpy
