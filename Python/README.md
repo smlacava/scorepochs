@@ -20,6 +20,7 @@ In the last case you have two possibility:
  - Import the module and use the function through the dot notation: 
  
   ```python
+    import scorEpochs
     idx_best, epoch, scores = scorEpochs.scorEpochs(cfg, data)
   ```
 
