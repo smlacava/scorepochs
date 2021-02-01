@@ -32,9 +32,10 @@ The **cfg** parameter is a dictionary which has the following keys:
 - **fs**, which represents the sampling frequency of the time series
 - **windowL**, which identify the number of seconds of each epoch
 - **smoothFactor**, which represents the window of the moving average filter which have to be applied on the power spectrum of each epoch (optional, the moving average is not computed if this parameter is omitted)
+
 An example for this parameter is:
 ```python
-cfg = {'freqRange':[1, 100], 'fs':500, 'windowL':20, 'smoothFactor':1}
+cfg = {'freqRange':[1, 100], 'fs':500, 'windowL':20, 'smoothFactor':3}
 ```
 
 ## Required libraries
