@@ -41,6 +41,10 @@ An example for this parameter is:
 cfg = {'freqRange':[1, 100], 'fs':500, 'windowL':20, 'smoothFactor':3}
 ```
 
+<br>
+
+[Click here to have a view of a demonstration on the usage of this tool.](https://colab.research.google.com/drive/1ygD5aMjdzpjMy6NyeaI47GX7Jg-jPvJv?usp=sharing)
+
 <br><br>
 
 ## Required libraries
