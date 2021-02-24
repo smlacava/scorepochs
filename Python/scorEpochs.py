@@ -54,7 +54,7 @@ import sys
 
 def scorEpochs(cfg, data):
     """
-    :param cfg: dictionary with the following key-value pairs
+    :param cfg:  dictionary with the following key-value pairs
                  freqRange    - list with the frequency range used to compute the power spectrum
                                 (see scipy.stats.spearmanr() function)
                  fs           - integer representing sample frequency
@@ -62,37 +62,34 @@ def scorEpochs(cfg, data):
                  smoothFactor - smoothing factor for the power spectrum
     :param data: 2d array with the time-series (channels X time samples)
 
-    :return:      idx_best_ep - list of indexes sorted according to the best score (this list should be used for the
-                                selection of the best epochs)
-                  epoch       - 3d list of the data divided in equal length epochs of length windowL
-                                (channels X epochs X time samples)
-                  score_Xep   - array of score per epoch
+    :return:     idx_best_ep - list of indexes sorted according to the best score (this list should be used for the
+                               selection of the best epochs)
+                 epoch       - 3d list of the data divided in equal length epochs of length windowL
+                               (channels X epochs X time samples)
+                 score_Xep   - array of score per epoch
     """
     epLen = cfg['windowL'] * cfg['fs']
     dataLen = len(data[0])
     nCh = len(data)
-    idx_ep = range(0, dataLen-epLen+1, epLen)
+    idx_ep = range(0, dataLen-epLen+1, epLen)  # Start epochs
     nEp = len(idx_ep)
     epoch = np.zeros((nEp, nCh, epLen))
     freqRange = cfg['freqRange']
     smoothing_condition = 'smoothFactor' in cfg.keys() and cfg['smoothFactor'] > 1
+
     for e in range(nEp):
         for c in range(nCh):
-            epoch[e][c][0:epLen] = data[c][idx_ep[e]: idx_ep[e] + epLen]
+            epoch[e][c][0:epLen] = data[c][idx_ep[e]:idx_ep[e]+epLen]
             # compute power spectrum
             f, aux_pxx = sig.welch(epoch[e][c].T, cfg['fs'], nperseg=cfg['windowL'], noverlap=0, detrend=False)
             if c == 0 and e == 0:
-                idx_min = int(np.argmin(abs(f-freqRange[0])))
-                idx_max = int(np.argmin(abs(f-freqRange[-1])))
-                nFreq = len(aux_pxx[idx_min:idx_max+1])
-                pxx = np.zeros((nEp, nCh, nFreq))
+                pxx, idx_min, idx_max, nFreq = _spectrum_parameters(f, freqRange, aux_pxx, nEp, nCh)
                 if smoothing_condition:
-                    window_range = round(cfg['smoothFactor'])
-                    initial_f = int(window_range/2)
-                    final_f = nFreq - initial_f
-            pxx[e][c] = aux_pxx[idx_min:idx_max+1]
+                    window_range, initial_f, final_f = _smoothing_parameters(cfg['smoothFactor'], nFreq)
             if smoothing_condition:
                 pxx[e][c] = _movmean(aux_pxx, cfg['smoothFactor'], initial_f, final_f, nFreq, idx_min, idx_max)
+            else:
+                pxx[e][c] = aux_pxx[idx_min:idx_max+1]
     pxxXch = np.zeros((nEp, idx_max-idx_min+1))
     score_chXep = np.zeros((nCh, nEp))
     for c in range(nCh):
@@ -106,7 +103,7 @@ def scorEpochs(cfg, data):
     return idx_best_ep, epoch, score_Xep
 
 
-def _movmean(aux_pxx, smoothFactor, initial_f, final_f, nFreq, idx_min, idx_max):
+def _movmean(aux_pxx, smoothFactor, initial_f, final_f, nFreq, idx_min, idx_max):   #It is not weighted
     """
     Function used for computing the smoothed power spectrum through moving average filter, where each output sample is
     evaluated on the center of the window at each iteration (or the one furthest to the right of the two in the center,
@@ -130,6 +127,28 @@ def _movmean(aux_pxx, smoothFactor, initial_f, final_f, nFreq, idx_min, idx_max)
         else:
             smoothed[f] = np.mean(aux_pxx[idx_min+f-initial_f:idx_min+f+initial_f+1])
     return smoothed
+
+
+def _spectrum_parameters(f, freqRange, aux_pxx, nEp, nCh):
+    """
+    Function which defines the spectrum parameters for the scorEpochs function (FOR INTERNAL USE ONLY).
+    """
+    idx_min = int(np.argmin(abs(f-freqRange[0])))
+    idx_max = int(np.argmin(abs(f-freqRange[-1])))
+    nFreq = len(aux_pxx[idx_min:idx_max+1])
+    pxx = np.zeros((nEp, nCh, nFreq))
+    return pxx, idx_min, idx_max, nFreq
+
+
+def _smoothing_parameters(smoothFactor, nFreq):
+    """
+    Function which defines the parameters of the window to be used by the scorEpochs function in smoothing the spectrum
+    (FOR INTERNAL USE ONLY).
+    """
+    window_range = round(smoothFactor)
+    initial_f = int(window_range/2)
+    final_f = nFreq - initial_f
+    return window_range, initial_f, final_f
 
 
 if __name__ == "__main__":
