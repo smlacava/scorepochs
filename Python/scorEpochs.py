@@ -68,38 +68,38 @@ def scorEpochs(cfg, data):
                                (channels X epochs X time samples)
                  score_Xep   - array of score per epoch
     """
-    epLen = cfg['windowL'] * cfg['fs']
-    dataLen = len(data[0])
-    nCh = len(data)
-    idx_ep = range(0, dataLen-epLen+1, epLen)  # Start epochs
-    nEp = len(idx_ep)
-    epoch = np.zeros((nEp, nCh, epLen))
-    freqRange = cfg['freqRange']
-    smoothing_condition = 'smoothFactor' in cfg.keys() and cfg['smoothFactor'] > 1
+    epLen = cfg['windowL'] * cfg['fs']         # Number of samples of each epoch (for each channel)
+    dataLen = len(data[0])                     # Total number of samples of the whole signal
+    nCh = len(data)                            # Number of channels
+    idx_ep = range(0, dataLen-epLen+1, epLen)  # Indexes from which start each epoch
+    nEp = len(idx_ep)                          # Total number of epochs
+    epoch = np.zeros((nEp, nCh, epLen))        # Initialization of the returned 3D matrix
+    freqRange = cfg['freqRange']               # Cut frequencies
+    smoothing_condition = 'smoothFactor' in cfg.keys() and cfg['smoothFactor'] > 1 # True if the smoothing has to be executed, 0 otherwise
 
     for e in range(nEp):
         for c in range(nCh):
             epoch[e][c][0:epLen] = data[c][idx_ep[e]:idx_ep[e]+epLen]
             # compute power spectrum
-            f, aux_pxx = sig.welch(epoch[e][c].T, cfg['fs'], noverlap=0, detrend=False)
-            if c == 0 and e == 0:
+            f, aux_pxx = sig.welch(epoch[e][c].T, cfg['fs'], nperseg=floor(epLen/8), noverlap=0, detrend=False) # The nperseg allows the MATLAB pwelch correspondence
+            if c == 0 and e == 0: # The various parameters are obtained in the first interation
                 pxx, idx_min, idx_max, nFreq = _spectrum_parameters(f, freqRange, aux_pxx, nEp, nCh)
                 if smoothing_condition:
                     window_range, initial_f, final_f = _smoothing_parameters(cfg['smoothFactor'], nFreq)
             if smoothing_condition:
                 pxx[e][c] = _movmean(aux_pxx, cfg['smoothFactor'], initial_f, final_f, nFreq, idx_min, idx_max)
             else:
-                pxx[e][c] = aux_pxx[idx_min:idx_max+1]
+                pxx[e][c] = aux_pxx[idx_min:idx_max+1] # pxx takes the only interested spectrum-related sub-array
     pxxXch = np.zeros((nEp, idx_max-idx_min+1))
     score_chXep = np.zeros((nCh, nEp))
     for c in range(nCh):
         for e in range(nEp):
             pxxXch[e] = pxx[e][c]
-        score_ch, p = st.spearmanr(pxxXch, axis=1)
-        score_chXep[c][0:nEp] += np.mean(score_ch, axis=1)
-    score_Xep = np.mean(score_chXep, axis=0)
-    idx_best_ep = np.argsort(score_Xep)
-    idx_best_ep = idx_best_ep[::-1]
+        score_ch, p = st.spearmanr(pxxXch, axis=1)          # Correlation between the spectra of the epochs within each channel
+        score_chXep[c][0:nEp] += np.mean(score_ch, axis=1)  # Mean similarity score of an epoch with all the epochs for each channel
+    score_Xep = np.mean(score_chXep, axis=0)                # The score of each epoch is equal to the mean of the scores of all the channels in that epoch 
+    idx_best_ep = np.argsort(score_Xep)                     # Obtains of the indexes from the worst epoch to the best
+    idx_best_ep = idx_best_ep[::-1]                         # Reversing to obtain the descending order (from the best to the worst)
     return idx_best_ep, epoch, score_Xep
 
 
