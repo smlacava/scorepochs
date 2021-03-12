@@ -81,7 +81,7 @@ def scorEpochs(cfg, data):
         for c in range(nCh):
             epoch[e][c][0:epLen] = data[c][idx_ep[e]:idx_ep[e]+epLen]
             # compute power spectrum
-            f, aux_pxx = sig.welch(epoch[e][c].T, cfg['fs'], nperseg=cfg['windowL'], noverlap=0, detrend=False)
+            f, aux_pxx = sig.welch(epoch[e][c].T, cfg['fs'], noverlap=0, detrend=False)
             if c == 0 and e == 0:
                 pxx, idx_min, idx_max, nFreq = _spectrum_parameters(f, freqRange, aux_pxx, nEp, nCh)
                 if smoothing_condition:
