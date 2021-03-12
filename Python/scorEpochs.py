@@ -81,7 +81,7 @@ def scorEpochs(cfg, data):
         for c in range(nCh):
             epoch[e][c][0:epLen] = data[c][idx_ep[e]:idx_ep[e]+epLen]
             # compute power spectrum
-            f, aux_pxx = sig.welch(epoch[e][c].T, cfg['fs'], window='hamming', nperseg=floor(epLen/8), detrend=False) # The nperseg allows the MATLAB pwelch correspondence
+            f, aux_pxx = sig.welch(epoch[e][c].T, cfg['fs'], window='hamming', nperseg=round(epLen/8), detrend=False) # The nperseg allows the MATLAB pwelch correspondence
             if c == 0 and e == 0: # The various parameters are obtained in the first interation
                 pxx, idx_min, idx_max, nFreq = _spectrum_parameters(f, freqRange, aux_pxx, nEp, nCh)
                 if smoothing_condition:
