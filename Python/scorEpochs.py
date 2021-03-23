@@ -6,11 +6,13 @@
 
  INPUT
     cfg: dictionary with the following key-value pairs
-                 freqRange    - list with the frequency range used to compute the power spectrum
-                                (see scipy.stats.spearmanr() function)
-                 fs           - integer representing sample frequency
-                 windowL      - integer representing the window length (in seconds)
-                 smoothFactor - smoothing factor for the power spectrum
+         freqRange    - list with the frequency range used to compute the power spectrum (see scipy.stats.spearmanr()
+                        function)
+         fs           - integer representing sample frequency
+         windowL      - integer representing the window length (in seconds)
+         smoothFactor - smoothing factor for the power spectrum (0 by default)
+         wOverlap     - integer representing the number of seconds of overlap between two consecutive epochs (0 by
+                        default)
 
     data: 2d array with the time-series (channels X time samples)
 
@@ -24,6 +26,10 @@
     epoch:       3d list of the data divided in equal length epochs of length windowL (epochs X channels X time samples)
 
     score_Xep:   array of score per epoch
+
+
+ Author:       Simone Maurizio La Cava
+ Contributors: Benedetta Presicci
 
 
 
@@ -55,11 +61,13 @@ import sys
 def scorEpochs(cfg, data):
     """
     :param cfg:  dictionary with the following key-value pairs
-                 freqRange    - list with the frequency range used to compute the power spectrum
-                                (see scipy.stats.spearmanr() function)
+                 freqRange    - list with the frequency range used to compute the power spectrum (see
+                                scipy.stats.spearmanr() function)
                  fs           - integer representing sample frequency
                  windowL      - integer representing the window length (in seconds)
-                 smoothFactor - smoothing factor for the power spectrum
+                 smoothFactor - smoothing factor for the power spectrum (0 by default)
+                 wOverlap     - integer representing the number of seconds of overlap between two consecutive epochs (0
+                                by default)
     :param data: 2d array with the time-series (channels X time samples)
 
     :return:     idx_best_ep - list of indexes sorted according to the best score (this list should be used for the
@@ -71,7 +79,14 @@ def scorEpochs(cfg, data):
     epLen = cfg['windowL'] * cfg['fs']         # Number of samples of each epoch (for each channel)
     dataLen = len(data[0])                     # Total number of samples of the whole signal
     nCh = len(data)                            # Number of channels
-    idx_ep = range(0, dataLen-epLen+1, epLen)  # Indexes from which start each epoch
+
+    isOverlap = 'wOverlap' in cfg.keys()  # isOverlap = True if the user wants a sliding window; the user will assign the value in seconds of the overlap desired to the key 'wOverlap'
+    if isOverlap:
+        idx_jump = (cfg['windowL'] - cfg['wOverlap']) * cfg['fs']  # idx_jump is the number of samples that separates the beginning of an epoch and the following one
+    else:
+        idx_jump = epLen
+    idx_ep = range(0, dataLen - epLen + 1, idx_jump)  # Indexes from which start each epoch
+
     nEp = len(idx_ep)                          # Total number of epochs
     epoch = np.zeros((nEp, nCh, epLen))        # Initialization of the returned 3D matrix
     freqRange = cfg['freqRange']               # Cut frequencies
@@ -179,7 +194,8 @@ if __name__ == "__main__":
               'the frequency band which has to be considered (in Hz) \n\t - fs: an integer representing the sampling ',
               'frequency (in Hz) \n\t - windowL: an integer representing the length of each epoch in which the time ',
               'series has to be divided (in seconds) \n\t - smoothFactor: the smoothing factor for the power spectrum',
-              ' (optional)')
+              ' (optional) \n\t - wOverlap: an integer representing the number of seconds of overlap between two',
+              ' consecurive epochs (optional)')
         print('\nThe function returns a list containing the indexes of the best epochs, a 3d list containing the time ',
               'series divided in epochs (channels X epochs X time series), and the list of the scores assigned to each',
               ' epoch.')
@@ -215,6 +231,15 @@ if __name__ == "__main__":
         for c in range(len(epoch[0])):
             for e in range(5):
                 best_epochs[e][c] = epoch[idx_best[e]][c]
+        print('\n\nIncluding an overlap of 1 second, considering again epochs of 5 seconds, then the first epoch ',
+              'starts from the first sample (i.e. the first sample of the signal) and ends to 5 seconds, the second ',
+              'epoch starts from the 4th second and ends with the 9th second, and so on:')
+        print("idx_best, epoch, scores = scorEpochs({'freqRange':[10, 40], 'fs':100, 'windowL':5, 'smoothFactor':3, ",
+              "'wOverlap', 1}, time_series)")
+        idx_best, epoch, scores = scorEpochs({'freqRange': [10, 40], 'fs': 100, 'windowL': 5, 'smoothFactor': 3,
+                                              'wOverlap':1}, time_series)
+        print("\n\nAs result, we can see that idx_best contains a list which is higher than the previous one:")
+        print(idx_best)
         print('\n\nThis tool can be used through the command line (do not be afraid to put spaces, they will be ',
               'automatically managed) or by importing it')
         print('In the last case you have two possibility: \n - Import the function from the module:'
